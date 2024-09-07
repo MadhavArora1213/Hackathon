@@ -6,6 +6,7 @@ import Signup from './Components/SignupForm'
 import Landing from './components/Landing'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import ResetPassword from './Components/ResetPassword';
+import AddAdminData from './Components/AddAdminData';
 
 function App() {
   const router = createBrowserRouter([
@@ -25,7 +26,11 @@ function App() {
     {
       path: "/reset-password",
       element: <><Navbar/> <ResetPassword/></>
-    }
+    },
+    // {
+    //   path: "/add-admin-data",
+    //   element: <><Navbar/> <AddAdminData /></>
+    // }
   ])
 
 

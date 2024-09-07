@@ -13,10 +13,7 @@ dist
 dist-ssr
 *.local
 public
-tailwind.config.js
-vite.config.js
-eslint.config.js
-postcss.config.js
+
 assets
 index.html
 

@@ -72,6 +72,7 @@ const Navbar = () => {
           <>
             <Link to='/register'>Register</Link>
             <Link to='/login'>Login</Link>
+            {/* <Link to='/add-admin-data'>AddAmin</Link> */}
           </>
         ) : (
           <button onClick={() => setShowPopup(true)}>Logout</button>
