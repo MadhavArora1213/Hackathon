@@ -1,29 +1,24 @@
 import React, { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import emailjs from "emailjs-com";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faEnvelope,
-  faLock,
-  faIdCard,
-} from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faLock, faIdCard } from "@fortawesome/free-solid-svg-icons";
 import TextInput from "./TextInput";
 import OtpInputLogin from "./OtpInputLogin"; // Import the OTP Input component
 import { auth, googleProvider, db } from "../firebase";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
 import Popup from "./Popup"; // Ensure you have this component
 import "../index.css";
 
-export default function LoginCard() {
+export default function LoginCard({ setPopupMessage }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [inputOtp, setInputOtp] = useState("");
-  const [popupMessage, setPopupMessage] = useState("");
   const navigate = useNavigate();
 
   const {
@@ -32,14 +27,6 @@ export default function LoginCard() {
     formState: { errors },
     control,
   } = useForm();
-
-  const showSuccessPopup = () => {
-    setPopupMessage("Successfully logged in!");
-    setTimeout(() => {
-      setPopupMessage("");
-      navigate("/"); // Redirect to home page
-    }, 1000); // Redirect after 1 second
-  };
 
   const sendOtp = async (email) => {
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -75,7 +62,6 @@ export default function LoginCard() {
     setIsSubmitted(true);
     try {
       if (isAdmin) {
-        // Admin Login
         if (!otpSent) {
           await sendOtp(data.email);
           return;
@@ -88,11 +74,18 @@ export default function LoginCard() {
         }
 
         // Perform admin login with email and OTP
-        // Add any additional admin verification logic here
+        setPopupMessage("Admin successfully logged in!");
+        setTimeout(() => {
+          setPopupMessage("");
+          navigate("/"); // Redirect to home page
+        }, 1000);
       } else {
-        // Normal User Login
         await signInWithEmailAndPassword(auth, data.email, data.password);
-        showSuccessPopup();
+        setPopupMessage("Successfully logged in!");
+        setTimeout(() => {
+          setPopupMessage("");
+          navigate("/"); // Redirect to home page
+        }, 1000);
       }
     } catch (error) {
       if (error.code === "auth/user-not-found") {
@@ -121,7 +114,11 @@ export default function LoginCard() {
         setLoginError("User not found. Please sign up first.");
         navigate("/register");
       } else {
-        showSuccessPopup();
+        setPopupMessage("Successfully logged in with Google!");
+        setTimeout(() => {
+          setPopupMessage("");
+          navigate("/"); // Redirect to home page
+        }, 1000);
       }
     } catch (error) {
       if (error.code === "auth/user-not-found") {
@@ -134,173 +131,135 @@ export default function LoginCard() {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center min-h-screen p-4">
-      <div className="mb-4">
+    <div>
+      <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        {!otpSent ? (
+          <>
+            {isAdmin ? (
+              <>
+                <TextInput
+                  label="Email"
+                  name="email"
+                  type="email"
+                  register={register}
+                  icon={faEnvelope}
+                  errors={errors}
+                  validation={{
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
+                      message: "Enter a valid email",
+                    },
+                  }}
+                  placeholder="Email address"
+                />
+                <TextInput
+                  label="Password"
+                  name="password"
+                  type="password"
+                  register={register}
+                  icon={faLock}
+                  errors={errors}
+                  placeholder="Password"
+                  validation={{
+                    required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Password must be at least 6 characters",
+                    },
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <TextInput
+                  label="AadharCard Number"
+                  name="idNumber"
+                  type="text"
+                  register={register}
+                  icon={faIdCard}
+                  errors={errors}
+                  placeholder="Aadhar Card Number"
+                  validation={{
+                    required: "Aadhaar Card number is required",
+                    pattern: {
+                      value: /^[0-9]{12}$/,
+                      message: "Aadhaar must be 12 digits",
+                    },
+                  }}
+                />
+                <TextInput
+                  label="Email"
+                  name="email"
+                  type="email"
+                  register={register}
+                  icon={faEnvelope}
+                  errors={errors}
+                  validation={{
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
+                      message: "Enter a valid email",
+                    },
+                  }}
+                  placeholder="Email address"
+                />
+                <TextInput
+                  label="Password"
+                  name="password"
+                  type="password"
+                  register={register}
+                  icon={faLock}
+                  errors={errors}
+                  placeholder="Password"
+                  validation={{
+                    required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Password must be at least 6 characters",
+                    },
+                  }}
+                />
+              </>
+            )}
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#03AED2] hover:bg-[#2cc5e4] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#03AED2] transition-colors duration-300"
+              disabled={isSubmitted}
+            >
+              {isAdmin ? "Login as Admin" : "Log in"}
+            </button>
+            {loginError && <div className="text-red-500 text-center">{loginError}</div>}
+            <div className="mt-4 text-center">
+              <a
+                href="/forgot-password"
+                className="text-[#03AED2] hover:text-[#2cc5e4] transition-colors duration-300"
+              >
+                Forgot Password?
+              </a>
+            </div>
+          </>
+        ) : (
+          <>
+            <OtpInputLogin value={inputOtp} onChange={setInputOtp} />
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#03AED2] hover:bg-[#2cc5e4] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#03AED2] transition-colors duration-300"
+              disabled={isSubmitted}
+            >
+              Verify OTP
+            </button>
+          </>
+        )}
+      </form>
+      <div className="text-center mt-4">
         <button
-          onClick={() => setIsAdmin(!isAdmin)}
-          className="py-2 px-4 bg-[#03AED2] text-white font-medium rounded-md hover:bg-[#2cc5e4] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#03AED2] transition-colors duration-300"
+          onClick={handleGoogleLogin}
+          className="py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#4285F4] hover:bg-[#357ae8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4285F4] transition-colors duration-300"
         >
-          {isAdmin ? "Switch to User Login" : "Switch to Admin Login"}
+          Log in with Google
         </button>
       </div>
-
-      <div className="w-full max-w-md p-8 space-y-6 bg-white shadow-xl rounded-xl transform transition-transform duration-500 animate-fadeIn">
-        <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-4">
-          {isAdmin ? "Admin Login" : "User Login"}
-        </h2>
-        {popupMessage && (
-          <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg">
-            {popupMessage}
-          </div>
-        )}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          {!otpSent ? (
-            <>
-              {isAdmin ? (
-                <>
-                  <TextInput
-                    label="Email"
-                    name="email"
-                    type="email"
-                    register={register}
-                    icon={faEnvelope}
-                    errors={errors}
-                    validation={{
-                      required: "Email is required",
-                      pattern: {
-                        value: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
-                        message: "Enter a valid email",
-                      },
-                    }}
-                    placeholder="Email address"
-                  />
-                  <TextInput
-                    label="Password"
-                    name="password"
-                    type="password"
-                    register={register}
-                    icon={faLock}
-                    errors={errors}
-                    placeholder="Password"
-                    validation={{
-                      required: "Password is required",
-                      minLength: {
-                        value: 6,
-                        message: "Password must be at least 6 characters",
-                      },
-                    }}
-                  />
-                </>
-              ) : (
-                <>
-                  <TextInput
-                    label="AadharCard Number"
-                    name="idNumber"
-                    type="text"
-                    register={register}
-                    icon={faIdCard}
-                    errors={errors}
-                    placeholder="Aadhar Card Number"
-                    validation={{
-                      required: "Aadhaar Card number is required",
-                      pattern: {
-                        value: /^[0-9]{12}$/,
-                        message: "Aadhaar must be 12 digits",
-                      },
-                    }}
-                  />
-                  <TextInput
-                    label="Email"
-                    name="email"
-                    type="email"
-                    register={register}
-                    icon={faEnvelope}
-                    errors={errors}
-                    validation={{
-                      required: "Email is required",
-                      pattern: {
-                        value: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
-                        message: "Enter a valid email",
-                      },
-                    }}
-                    placeholder="Email address"
-                  />
-                  <TextInput
-                    label="Password"
-                    name="password"
-                    type="password"
-                    register={register}
-                    icon={faLock}
-                    errors={errors}
-                    placeholder="Password"
-                    validation={{
-                      required: "Password is required",
-                      minLength: {
-                        value: 6,
-                        message: "Password must be at least 6 characters",
-                      },
-                    }}
-                  />
-                </>
-              )}
-              {loginError && (
-                <p className="mt-2 text-sm text-red-600">{loginError}</p>
-              )}
-              <button
-                type="submit"
-                className={`w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#03AED2] hover:bg-[#2cc5e4] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#03AED2] transition-colors duration-300 ${
-                  isSubmitted ? "animate-bounce" : ""
-                }`}
-              >
-                {isSubmitted
-                  ? isAdmin
-                    ? "Verifying OTP..."
-                    : "Logging in..."
-                  : isAdmin
-                  ? "Send OTP"
-                  : "Log in"}
-              </button>
-            </>
-          ) : (
-            <>
-              <OtpInputLogin
-                label="Enter OTP"
-                value={inputOtp}
-                onChange={(e) => setInputOtp(e.target.value)}
-              />
-              <button
-                type="submit"
-                className={`w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#03AED2] hover:bg-[#2cc5e4] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#03AED2] transition-colors duration-300 ${
-                  isSubmitted ? "animate-bounce" : ""
-                }`}
-              >
-                Verify OTP
-              </button>
-            </>
-          )}
-          {!isAdmin && (
-            <div className="mt-4 flex justify-center items-center">
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="flex items-center bg-[#4285F4] text-white py-2 px-4 rounded-md shadow-md hover:bg-[#357ae8] transition-colors duration-300"
-              >
-                <FontAwesomeIcon icon={['fab', 'google']} className="mr-2" />
-                Sign in with Google
-              </button>
-            </div>
-          )}
-          <div className="mt-4 text-center">
-            <a
-              href="/forgot-password"
-              className="text-[#03AED2] hover:text-[#2cc5e4] transition-colors duration-300"
-            >
-              Forgot Password?
-            </a>
-          </div>
-        </form>
-      </div>
-      {popupMessage && <Popup message={popupMessage} />}
     </div>
   );
 }

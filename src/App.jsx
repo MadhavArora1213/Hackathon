@@ -1,12 +1,14 @@
 import React from 'react';
 import './App.css'
 import Navbar from './components/Navbar'
-import Login from './Components/LoginCard'
+// import Login from './Components/LoginCard'
 import Signup from './Components/SignupForm'
 import Landing from './components/Landing'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import ResetPassword from './Components/ResetPassword';
 import AddAdminData from './Components/AddAdminData';
+
+import Loginsss from './Components/loginsss';
 
 function App() {
   const router = createBrowserRouter([
@@ -17,7 +19,7 @@ function App() {
 
     {
       path: "/login",
-      element: <> <Navbar /> <Login/></>
+      element: <> <Navbar /> <Loginsss/></>
     },
     {
       path: "/register",
@@ -30,7 +32,8 @@ function App() {
     // {
     //   path: "/add-admin-data",
     //   element: <><Navbar/> <AddAdminData /></>
-    // }
+    // },
+
   ])
 
 

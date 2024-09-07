@@ -13,7 +13,8 @@ dist
 dist-ssr
 *.local
 public
-
+AddAdminData.jsx
+AdminLogin.jsx
 assets
 index.html
 

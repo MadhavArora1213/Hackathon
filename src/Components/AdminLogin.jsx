@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import emailjs from "emailjs-com";
-import { auth, db } from "../firebase"; // Firestore and Firebase authentication config
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase"; // Import Firestore configuration
+import { collection, getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock } from "@fortawesome/free-solid-svg-icons";
 
-import TextInput from "./TextInput"; // Assume you have a TextInput component
-import OtpInputLogin from "./OtpInputLogin"; // Assume you have an OTP input component
-import Popup from "./Popup"; // Assume you have a Popup component
+import TextInput from "./TextInput"; // Your custom TextInput component
+import OtpInputLogin from "./OtpInputLogin"; // Your custom OTP input component
+import Popup from "./Popup"; // Your custom Popup component
 
 const AdminLogin = () => {
   const { register, handleSubmit, control, formState: { errors } } = useForm();
@@ -18,54 +18,78 @@ const AdminLogin = () => {
   const [inputOtp, setInputOtp] = useState('');
   const [loginError, setLoginError] = useState('');
   const [popupMessage, setPopupMessage] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
   const navigate = useNavigate();
+
+  // Fetch all admins from Firestore
+  const fetchAdmins = async () => {
+    try {
+      const adminsRef = collection(db, "admins");
+      const querySnapshot = await getDocs(adminsRef);
+      const admins = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return admins;
+    } catch (error) {
+      console.error('Failed to fetch admins:', error);
+      throw new Error('Failed to fetch admin data. Please try again later.');
+    }
+  };
 
   const sendOtp = async (to_email) => {
     const otp1 = Math.floor(100000 + Math.random() * 900000).toString();
     const templateParams = { to_email: to_email, otp: otp1 };
-    console.log(otp1);
+
+    // console.log("Sending OTP to:", to_email);
+    // console.log("Generated OTP:", otp1);
 
     try {
-      await emailjs.send("service_guk4ms6", "template_1px6ww2", templateParams, "B3xiQMmJKL8mTSdKv");
+      await emailjs.send("service_844bcrs", "template_1px6ww2", templateParams, "B3xiQMmJKL8mTSdKv");
       setOtp(otp1);
       setOtpSent(true);
       setPopupMessage(`OTP has been sent to ${to_email}. Please enter the OTP.`);
-      setTimeout(() => setPopupMessage(''), 2000);
+      setTimeout(() => setPopupMessage(''), 5000);
     } catch (error) {
       console.error('Failed to send OTP:', error);
       setLoginError('Failed to send OTP. Please try again.');
+      setTimeout(() => setLoginError(''), 5000);
     }
   };
 
-  const checkAdminCredentials = async (to_email, password) => {
-    // Check if user exists by email or username
-    const emailQuery = query(collection(db, "admins"), where("email", "==", to_email));
-    const usernameQuery = query(collection(db, "admins"), where("username", "==", to_email));
-    
-    const [emailSnapshot, usernameSnapshot] = await Promise.all([getDocs(emailQuery), getDocs(usernameQuery)]);
-    
-    let adminDoc = emailSnapshot.docs[0] || usernameSnapshot.docs[0]; // Check by either email or username
+  const checkAdminCredentials = async (emailOrUsername, password) => {
+    try {
+      const admins = await fetchAdmins();
+      const admin = admins.find(admin =>
+        (admin.email === emailOrUsername || admin.username === emailOrUsername) &&
+        admin.password === password
+      );
 
-    if (!adminDoc) {
-      throw new Error('Invalid username/email address.');
+      if (!admin) {
+        throw new Error('Invalid email/username or password.');
+      }
+
+      setAdminEmail(admin.email); // Set the admin's email for OTP sending
+      return admin;
+    } catch (error) {
+      setLoginError(error.message);
+      setTimeout(() => setLoginError(''), 5000);
+      throw error; // Re-throw error to handle it in the onSubmit function
     }
-
-    const adminData = adminDoc.data();
-
-    // Verify password
-    if (adminData.password !== password) {
-      throw new Error('Invalid password.');
-    }
-
-    return adminData; // Successfully authenticated admin
   };
 
   const onSubmit = async (data) => {
     setIsSubmitted(true);
 
     if (!otpSent) {
-      // Send OTP
-      await sendOtp(data.to_email);
+      try {
+        await checkAdminCredentials(data.to_email, data.password);
+        if (adminEmail) { // Ensure adminEmail is set
+          await sendOtp(adminEmail);
+        } else {
+          throw new Error('Failed to retrieve admin email. Please try again.');
+        }
+      } catch (error) {
+        setIsSubmitted(false);
+        return;
+      }
       return;
     }
 
@@ -76,15 +100,12 @@ const AdminLogin = () => {
     }
 
     try {
-      // Check if email/username and password match in Firestore
       await checkAdminCredentials(data.to_email, data.password);
       setPopupMessage('Successfully logged in!');
-      
       setTimeout(() => {
         setPopupMessage('');
         navigate('/'); // Redirect to home page
-      }, 1000); // Redirect after 1 second
-
+      }, 1000);
     } catch (error) {
       setLoginError(error.message);
       setIsSubmitted(false);
@@ -115,10 +136,7 @@ const AdminLogin = () => {
                 placeholder="Username or Email"
                 validation={{
                   required: 'Username or email is required',
-                  pattern: {
-                    value: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
-                    message: 'Enter a valid email'
-                  }
+                  validate: value => value.trim() !== '' || 'Username or email cannot be empty'
                 }}
               />
               <TextInput
